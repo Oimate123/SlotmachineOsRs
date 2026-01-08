@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gielinor Gambler</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+<style>
+:root{
+ --gold:#caa24d;
+ --panel:#1a1a1a;
+ --panel-dark:#0e0e0e;
+}
+
+body{
+ margin:0;
+ background:radial-gradient(circle at top,#1b1b1b,#050505 70%);
+ font-family:'Cinzel', serif;
+ color:#fff;
+ display:flex;
+ justify-content:center;
+ padding:40px;
+ overflow:hidden;
+}
+
+.app{display:flex;gap:60px}
+
+.total-level{
+ margin-top:16px;
+ text-align:center;
+ font-family:'Press Start 2P', monospace;
+ font-size:13px;
+ color:#ffd966;
+ width:100%;
+}
+
+/* ===== MACHINE ===== */
+.machine{
+ width:1100px;
+ padding:34px;
+ border-radius:22px;
+ background:linear-gradient(180deg,var(--panel),var(--panel-dark));
+ box-shadow:inset 0 0 40px rgba(255,255,255,.03),0 40px 120px rgba(0,0,0,.9);
+ position:relative;
+}
+
+.machine:before{
+ content:"";
+ position:absolute;
+ inset:12px;
+ border-radius:16px;
+ border:2px solid #5a5245;
+ pointer-events:none;
+}
+
+.keys{
+ text-align:center;
+ margin-bottom:6px;
+ font-family:'Press Start 2P', monospace;
+ color:#ffd966;
+}
+
+.mode{
+ text-align:center;
+ margin-bottom:12px;
+ font-family:'Press Start 2P', monospace;
+ font-size:11px;
+}
+
+.mode label{margin:0 10px;cursor:pointer}
+
+h1{text-align:center;margin:0;font-size:42px}
+.subtitle{text-align:center;color:#aaa;margin-top:6px;font-size:14px}
+
+/* ===== REELS ===== */
+.reels{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:26px;
+ margin:40px 120px 30px 0;
+}
+
+.reel{
+ background:radial-gradient(circle at top,#111,#050505);
+ border-radius:18px;
+ height:160px;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ align-items:center;
+ box-shadow:inset 0 0 35px rgba(0,0,0,.9);
+ cursor:pointer;
+ opacity:.55;
+ transform:scale(.96);
+ transition:
+ box-shadow .2s ease,
+ transform .15s ease,
+ opacity .15s ease;
+ position:relative;
+}
+
+.reel.spin{animation:spinFlash .12s linear infinite}
+.reel:hover{
+ box-shadow:
+  0 0 6px rgba(202,162,77,.35),
+  inset 0 0 6px rgba(202,162,77,.15);
+ transform:translateY(-2px);
+ opacity:.85;
+}
+
+@keyframes spinFlash{
+ 0%{filter:brightness(1)}
+ 50%{filter:brightness(1.35)}
+ 100%{filter:brightness(1)}
+}
+
+/* ===== LOCKED IN ===== */
+.reel.locked{
+ animation:lockPulse .45s ease-out;
+ box-shadow:0 0 45px rgba(202,162,77,.9);
+}
+
+@keyframes lockPulse{
+ 0%{transform:scale(1.05);filter:brightness(1.6)}
+ 100%{transform:scale(1);filter:brightness(1)}
+}
+
+.locked-text{
+ position:absolute;
+ top:50%;
+ left:50%;
+ transform:translate(-50%,-50%) scale(1.3);
+ font-family:'Press Start 2P', monospace;
+ font-size:14px;
+ color:#ffd966;
+ text-shadow:0 0 12px gold;
+ animation:lockedText .8s ease-out forwards;
+ pointer-events:none;
+}
+
+@keyframes lockedText{
+ 0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}
+ 30%{opacity:1}
+ 100%{opacity:0;transform:translate(-50%,-60%) scale(1)}
+}
+
+.reel.selected{
+ outline:3px solid var(--gold);
+ box-shadow:
+  0 0 12px rgba(202,162,77,.85),
+  0 0 28px rgba(202,162,77,.45),
+  inset 0 0 10px rgba(255,220,120,.4);
+ opacity:1;
+ transform:translateY(-3px) scale(1.03);
+ z-index:5;
+}
+
+.reel.selected{
+ opacity:1 !important;
+}
+
+.reel img{width:48px;height:48px;image-rendering:pixelated}
+
+.reel-name,.reel-gain{
+ font-family:'Press Start 2P', monospace;
+ font-size:12px;
+ margin-top:8px;
+}
+
+.reel-gain{color:var(--gold)}
+
+/* ===== CONTROLS ===== */
+.controls{display:flex;gap:16px;margin-top:10px}
+
+button{
+ background:linear-gradient(180deg,#8b6d32,#5f4820);
+ border:none;
+ border-radius:12px;
+ padding:14px 26px;
+ color:#fff;
+ cursor:pointer;
+}
+
+button:disabled{opacity:.4}
+
+/* ===== LEVER ===== */
+.lever{
+ position:absolute;
+ right:36px;
+ top:170px;
+ width:10px;
+ height:260px;
+ background:#666;
+ border-radius:10px;
+ transform-origin:top center;
+ transition:transform .25s ease, box-shadow .25s;
+}
+
+.lever.ready{
+ box-shadow:0 0 25px 6px rgba(202,162,77,.8);
+}
+
+.lever.disabled{
+ pointer-events:none;
+ opacity:.4;
+ box-shadow:none;
+}
+
+.lever-ball{
+ position:absolute;
+ bottom:-14px;
+ left:-18px;
+ width:46px;
+ height:46px;
+ background:#c33;
+ border-radius:50%;
+ box-shadow:0 0 30px rgba(255,0,0,.8);
+ cursor:pointer;
+}
+
+.lever.pull{transform:rotate(25deg)}
+
+/* ===== KEY DROP ===== */
+.key-drop{
+ position:fixed;
+ left:50%;
+ top:40%;
+ transform:translateX(-50%);
+ font-size:64px;
+ animation:keyPop 1.2s ease-out forwards;
+ pointer-events:none;
+ text-shadow:0 0 20px gold;
+}
+
+@keyframes keyPop{
+ 0%{transform:translate(-50%,20px) scale(.3);opacity:0}
+ 30%{opacity:1}
+ 100%{transform:translate(-50%,-120px) scale(1.3);opacity:0}
+}
+
+/* ===== CONFETTI ===== */
+.confetti{
+ position:fixed;
+ width:8px;
+ height:8px;
+ animation:burst 1.4s ease-out forwards;
+}
+
+@keyframes burst{
+ to{
+  transform:translate(var(--dx),var(--dy)) rotate(720deg);
+  opacity:0;
+ }
+}
+
+/* ===== KEY POPUP ===== */
+.key-popup{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.7);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:9999;
+}
+
+.key-popup-box{
+ background:linear-gradient(180deg,#2a241a,#120f0a);
+ border:2px solid #caa24d;
+ border-radius:18px;
+ padding:40px 60px;
+ text-align:center;
+ box-shadow:0 0 60px rgba(202,162,77,.9);
+ font-family:'Press Start 2P', monospace;
+ animation:pop .3s ease-out forwards;
+}
+
+@keyframes pop{
+ from{transform:scale(.7);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+
+.key-popup-box h2{
+ margin:0 0 18px;
+ font-size:16px;
+ color:#ffd966;
+ text-shadow:0 0 12px gold;
+}
+
+.key-popup-box .big-key{
+ font-size:64px;
+ text-shadow:0 0 25px gold;
+}
+
+/* ===== STATS — OSRS STYLE ===== */
+.skills-panel{
+ background:#2c261c;
+ padding:10px;
+ border-radius:4px;
+ box-shadow:inset 0 0 0 3px #1a140d;
+ width:312px;
+}
+
+/* exact 4 kolommen */
+.skills{
+ display:grid;
+ grid-template-columns:repeat(4, 1fr);
+ gap:6px;
+}
+
+/* skill tile */
+.skill{
+ position:relative;
+ background:#3a3328;
+ border:2px solid #1a140d;
+ width:68px;
+ height:68px;
+ padding:6px;
+ box-sizing:border-box;
+ display:flex;
+ align-items:flex-end;
+ justify-content:flex-start;
+}
+
+/* skill icon */
+.skill img{
+ width:32px;
+ height:32px;
+ image-rendering:pixelated;
+}
+
+/* level rechtsboven */
+.skill input{
+ position:absolute;
+ top:4px;
+ right:4px;
+ width:auto;
+ background:none;
+ border:none;
+ padding:0;
+ margin:0;
+ color:#ffff00;
+ font-family:'Press Start 2P', monospace;
+ font-size:12px;
+ text-align:right;
+ pointer-events:auto; /* voelt als display, JS werkt nog */
+}
+
+/* remove arrows */
+.skill input::-webkit-inner-spin-button,
+.skill input::-webkit-outer-spin-button{
+ -webkit-appearance:none;
+ margin:0;
+}
+
+/* TOTAL LEVEL TEGEL */
+.total-level{
+ width:68px;
+ height:68px;
+ margin-top:6px;
+ margin-left:auto;
+ margin-right:0;
+ background:#1f1a13;
+ border:2px solid #1a140d;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ font-family:'Press Start 2P', monospace;
+ font-size:11px;
+ color:#ffff00;
+}
+/* ===== RESPONSIVE SCALE (APP SCHALEN) ===== */
+.app{
+ transform-origin: top center;
+}
+
+/* schaal ALLES binnen .app */
+@media (max-width: 1500px){
+ .app{ transform: scale(0.9); }
+}
+
+@media (max-width: 1300px){
+ .app{ transform: scale(0.8); }
+}
+
+@media (max-width: 1100px){
+ .app{ transform: scale(0.7); }
+}
+/* ===== QUEST COMPLETE POPUP ===== */
+.quest-popup{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.85);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:10000;
+}
+
+.quest-box{
+ background:linear-gradient(180deg,#2a241a,#120f0a);
+ border:3px solid #caa24d;
+ border-radius:22px;
+ padding:50px 70px;
+ text-align:center;
+ box-shadow:0 0 80px rgba(202,162,77,1);
+ font-family:'Press Start 2P', monospace;
+ animation:questPop .4s ease-out forwards;
+}
+
+@keyframes questPop{
+ from{transform:scale(.6);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+
+.quest-box h1{
+ margin:0 0 16px;
+ font-size:18px;
+ color:#ffd966;
+ text-shadow:0 0 15px gold;
+}
+
+.quest-box img{
+ width:64px;
+ height:64px;
+ image-rendering:pixelated;
+ margin-bottom:12px;
+}
+
+.quest-box .quest-name{
+ font-size:14px;
+ color:#ffffff;
+ margin-top:10px;
+}
+/* ===== QUEST LOCK POPUP ===== */
+.quest-lock-popup{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.85);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:10001;
+}
+
+.quest-lock-box{
+ background:linear-gradient(180deg,#2a241a,#120f0a);
+ border:3px solid #caa24d;
+ border-radius:22px;
+ padding:40px 60px;
+ text-align:center;
+ box-shadow:0 0 80px rgba(202,162,77,1);
+ font-family:'Press Start 2P', monospace;
+ animation:questPop .4s ease-out forwards;
+ max-width:520px;
+}
+
+.quest-lock-box h2{
+ margin:0 0 16px;
+ font-size:14px;
+ color:#ffd966;
+ text-shadow:0 0 12px gold;
+}
+
+.quest-lock-box .recommended{
+ margin:18px 0;
+ font-size:11px;
+ color:#fff;
+}
+
+.quest-lock-buttons{
+ display:flex;
+ gap:20px;
+ justify-content:center;
+ margin-top:24px;
+}
+/* ===== QUEST TAB (LIST VIEW) ===== */
+.quest-tab{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.85);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:10002;
+}
+
+.quest-tab-box{
+ background:linear-gradient(180deg,#2a241a,#120f0a);
+ border:3px solid #caa24d;
+ border-radius:22px;
+ padding:30px 40px;
+ width:520px;
+ max-height:80vh;
+ overflow:auto;
+ font-family:'Press Start 2P', monospace;
+}
+
+.quest-tab-box h2{
+ margin-top:0;
+ font-size:16px;
+ color:#ffd966;
+ text-align:center;
+}
+
+.quest-list{
+ display:flex;
+ flex-direction:column;
+ gap:10px;
+ margin-top:20px;
+}
+
+.quest-item{
+ display:flex;
+ align-items:center;
+ gap:10px;
+ font-size:11px;
+ cursor:pointer;
+}
+.quest-item.completed{
+ opacity:.5;
+ text-decoration:line-through;
+}
+.quest-item input{
+ transform:scale(1.2);
+ cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<div class="machine">
+ <div class="keys">
+ 🗝️ KEYS: <span id="keyCount">0</span>
+ &nbsp;&nbsp;⭐ QP: <span id="qpCount">0</span>
+</div>
+
+ <div class="mode">
+  <label><input type="radio" name="mode" value="f2p" checked> FREE TO PLAY</label>
+  <label><input type="radio" name="mode" value="members"> MEMBERS</label>
+ </div>
+
+ <h1>Gielinor Gambler</h1>
+ <div class="subtitle">Oldschool slotmachine for progress</div>
+
+ <div class="reels" id="reels"></div>
+
+<div class="controls">
+  <button id="lockBtn" disabled>LOCK</button>
+  <button id="completeBtn" disabled>COMPLETE</button>
+  <button id="questBtn">QUESTS</button>
+  <button id="resetBtn">RESET</button>
+</div>
+
+ <div class="lever ready" id="lever"><div class="lever-ball"></div></div>
+</div>
+
+<div class="skills-panel">
+ <div class="skills" id="skills"></div>
+ <div id="totalLevel" class="total-level">TOTAL LEVEL: 0</div>
+</div>
+
+<script>
+const skills=["Attack","Strength","Defence","Hitpoints","Ranged","Prayer","Magic","Cooking","Woodcutting","Fletching","Fishing","Firemaking","Crafting","Smithing","Mining","Herblore","Agility","Thieving","Slayer","Farming","Runecraft","Hunter","Construction","Sailing"];
+const f2pSkills=["Attack","Strength","Defence","Hitpoints","Ranged","Prayer","Magic","Cooking","Woodcutting","Fishing","Firemaking","Crafting","Smithing","Mining"];
+const excluded=["Hitpoints"];
+
+let keys=+localStorage.getItem("gg_keys")||0;
+let mode = localStorage.getItem("gg_mode") || "f2p";
+document.querySelectorAll("input[name='mode']").forEach(r=>{
+  r.checked = (r.value === mode);
+});
+let spinning=false;
+let selected=null;
+let reelData=[];
+let state="READY";
+let questPoints = +localStorage.getItem("gg_qp") || 0;
+let locked = false;
+// ===== ROLL BALANCE =====
+const SKILL_WEIGHT = 6;   // hoe vaak skills in de pool zitten
+const QUEST_WEIGHT = 1;  // hoe vaak quests in de pool zitten
+// ================= QUEST SYSTEM (v1) =================
+
+// 1 quest: Cook's Assistant
+const QUESTS = {
+
+  cooks_assistant: {
+    name: "Cook's Assistant",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  the_restless_ghost: {
+    name: "The Restless Ghost",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "Capable of killing or running away from a combat level 13 skeleton." },
+    qpReward: 1
+  },
+
+  romeo_and_juliet: {
+    name: "Romeo & Juliet",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 5
+  },
+
+  sheep_shearer: {
+    name: "Sheep Shearer",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  shield_of_arrav: {
+    name: "Shield of Arrav",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "A trustworthy friend or partner. Players can join the official chat-channel OSRS SOA to look for a partner." },
+    qpReward: 1
+  },
+
+  ernest_the_chicken: {
+    name: "Ernest the Chicken",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defend from a level 22 Skeleton." },
+    qpReward: 4
+  },
+
+  vampyre_slayer: {
+    name: "Vampyre Slayer",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "Able to defeat a combat level 34 vampyre with a very high health recovery rate." },
+    qpReward: 3
+  },
+
+  imp_catcher: {
+    name: "Imp Catcher",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  prince_ali_rescue: {
+    name: "Prince Ali Rescue",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to get past aggressive combat level 26 jail guards." },
+    qpReward: 3
+  },
+
+  dorics_quest: {
+    name: "Doric's Quest",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  black_knights_fortress: {
+    name: "Black Knights' Fortress",
+    members: false,
+    required: { skills: {}, quests: [], qp: 12 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to evade level 33 Black Knights" },
+    qpReward: 3
+  },
+
+  witchs_potion: {
+    name: "Witch's Potion",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  the_knights_sword: {
+    name: "The Knight's Sword",
+    members: false,
+    required: { skills: { Mining: 10}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to run from level 57 ice warriors and level 53 ice giants could help." },
+    qpReward: 1
+  },
+
+  goblin_diplomacy: {
+    name: "Goblin Diplomacy",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, combat:15 },
+    qpReward: 5
+  },
+
+  pirates_treasure: {
+    name: "Pirate's Treasure",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "Able to defeat or run away from a Combat level 4 gardener." },
+    qpReward: 2
+  },
+
+  dragon_slayer_i: {
+    name: "Dragon Slayer I",
+    members: false,
+    required: { skills: {}, quests: [], qp: 32 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat a level 83 dragon" },
+    qpReward: 2
+  },
+
+  rune_mysteries: {
+    name: "Rune Mysteries",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  misthalin_mystery: {
+    name: "Misthalin Mystery",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  the_corsair_curse: {
+    name: "The Corsair Curse",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 2
+  },
+
+  x_marks_the_spot: {
+    name: "X Marks the Spot",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  below_ice_mountain: {
+    name: "Below Ice Mountain",
+    members: false,
+    required: { skills: {}, quests: [], qp: 16 },
+    recommended: { skills: {}, quests: [], qp: 0 },
+    qpReward: 1
+  },
+
+  demon_slayer: {
+    name: "Demon Slayer",
+    members: false,
+    required: { skills: {}, quests: [], qp: 0 },
+    recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat a level 27 demon aided by three level 20 Dark wizards and two level 7 Dark wizards using the Silverlight in melee." },
+    qpReward: 3
+},
+
+// ===== MEMBERS QUESTS — SELECTED LIST =====
+
+druidic_ritual: {
+  name: "Druidic Ritual",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0 },
+  qpReward: 4
+},
+
+lost_city: {
+  name: "Lost City",
+  members: true,
+  required: { skills: { Crafting: 31, Woodcutting: 36 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "Ability to kill a level 101 Tree spirit with limited armour and weapons." },
+  qpReward: 3
+},
+
+witchs_house: {
+  name: "Witch's House",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat 4 monsters from level 19 to 53 without a break." },
+  qpReward: 4
+},
+
+merlins_crystal: {
+  name: "Merlin's Crystal",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, combat: 20, note: 'Must be able to defeat a level 39 enemy. You do not need to have an Attack level of 20 to free Merlin; you can use Excalibur on the crystal to free him.' },
+  qpReward: 6
+},
+
+heroes_quest: {
+  name: "Heroes' Quest",
+  members: true,
+  required: { skills: { Cooking: 53, Herblore: 25, Mining: 50, Fishing: 53 }, quests: ["shield_of_arrav", "lost_city", "merlins_crystal", "dragon_slayer_i"], qp: 55 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "Requires partner.", combat: 50 },
+  qpReward: 1
+},
+
+scorpion_catcher: {
+  name: "Scorpion Catcher",
+  members: true,
+  required: { skills: { Prayer: 31 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to run past level 172 black demons and level 64 poison spiders.", combat: 40 },
+  qpReward: 1
+},
+
+family_crest: {
+  name: "Family Crest",
+  members: true,
+  required: { skills: { Mining: 40, Smithing: 40, Magic: 59, Crafting: 40 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat a level 170 demon; can be safespotted", combat: 55 },
+  qpReward: 1
+},
+
+tribal_totem: {
+  name: "Tribal Totem",
+  members: true,
+  required: { skills: {Thieving: 21 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0 },
+  qpReward: 1
+},
+
+fishing_contest: {
+  name: "Fishing Contest",
+  members: true,
+  required: { skills: { Fishing: 10 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "Garlic and spade needed." },
+  qpReward: 1
+},
+
+monks_friend: {
+  name: "Monk's Friend",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to run past two level 14 thieves and one level 26." },
+  qpReward: 1
+},
+
+temple_of_ikov: {
+  name: "Temple of Ikov",
+  members: true,
+  required: { skills: { Ranged: 40, Thieving: 42 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat a level 84 enemy with Ranged" },
+  qpReward: 1
+},
+
+clock_tower: {
+  name: "Clock Tower",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to run past level 53 Ogres", combat: 15 },
+  qpReward: 1
+},
+
+holy_grail: {
+  name: "Holy Grail",
+  members: true,
+  required: { skills: { Attack: 20 }, quests: ["merlins_crystal"], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "Must be able to defeat a level 120 Black Knight Titan; can be safespotted or flinched", combat: 50 },
+  qpReward: 2
+},
+
+tree_gnome_village: {
+  name: "Tree Gnome Village",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat a level 112 Khazard warlord", combat: 45 },
+  qpReward: 2
+},
+
+fight_arena: {
+  name: "Fight Arena",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "The ability to defeat level 44 63 and 137 enemies all can be safespotted", combat: 50 },
+  qpReward: 2
+},
+
+hazeel_cult: {
+  name: "Hazeel Cult",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "Choice based quest.", combat: 10 },
+  qpReward: 1
+},
+
+sheep_herder: {
+  name: "Sheep Herder",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "100 coins needed" },
+  qpReward: 4
+},
+
+plague_city: {
+  name: "Plague City",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0 },
+  qpReward: 1
+},
+
+sea_slug: {
+  name: "Sea Slug",
+  members: true,
+  required: { skills: { Firemaking: 30 }, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "No combat required." },
+  qpReward: 1
+},
+
+waterfall_quest: {
+  name: "Waterfall Quest",
+  members: true,
+  required: { skills: {}, quests: [], qp: 0 },
+  recommended: { skills: {}, quests: [], qp: 0, note: "No combat but dangerous areas.", combat: 25 },
+  qpReward: 1
+}
+
+};
+// completed quests laden
+let completedQuests = JSON.parse(
+  localStorage.getItem("gg_completed_quests") || "[]"
+);
+
+function saveCompletedQuests(){
+  localStorage.setItem(
+    "gg_completed_quests",
+    JSON.stringify(completedQuests)
+  );
+}
+
+// check skill requirements
+function hasSkillReq(reqs){
+  return Object.entries(reqs).every(([skill, lvl]) => {
+    return +document.getElementById(skill).value >= lvl;
+  });
+}
+
+// beschikbare quests
+function getAvailableQuests(){
+  return Object.entries(QUESTS).filter(([id, q]) => {
+
+    if (completedQuests.includes(id)) return false;
+    if (q.members && mode === "f2p") return false;
+
+    // REQUIRED skills
+    if (!hasSkillReq(q.required.skills)) return false;
+
+    // REQUIRED quests
+    if (!q.required.quests.every(r => completedQuests.includes(r))) return false;
+
+    // REQUIRED QP
+    if (questPoints < q.required.qp) return false;
+
+    return true;
+  });
+}
+
+const QUEST_ICON =
+  "https://oldschool.runescape.wiki/wiki/Special:FilePath/Quest_point_icon.png";
+const keyCount=document.getElementById("keyCount");
+const reels=document.getElementById("reels");
+const lever=document.getElementById("lever");
+const lockBtn=document.getElementById("lockBtn");
+const completeBtn=document.getElementById("completeBtn");
+const resetBtn=document.getElementById("resetBtn");
+const qpCount = document.getElementById("qpCount");
+qpCount.textContent = questPoints;
+function updateLeverState(){
+ if (state === "ROLLED" && keys > 0){
+  lever.classList.add("ready");
+ } else {
+  lever.classList.remove("ready");
+ }
+}
+
+keyCount.textContent=keys;
+
+document.querySelectorAll("input[name='mode']").forEach(r=>{
+  r.onchange = () => {
+    mode = r.value;
+    localStorage.setItem("gg_mode", mode);
+
+    renderSkills();
+    loadSkills();
+    updateTotalLevel();
+  };
+});
+
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+
+function getPool(){
+  const skillPool = (mode==="f2p"?f2pSkills:skills)
+    .filter(s=>!excluded.includes(s));
+
+  const questPool = getAvailableQuests().map(([id, q]) => q.name);
+
+  const pool = [];
+
+  // skills vaker laten voorkomen
+  skillPool.forEach(skill => {
+    for (let i = 0; i < SKILL_WEIGHT; i++){
+      pool.push(skill);
+    }
+  });
+
+  // quests zeldzamer
+  questPool.forEach(quest => {
+    for (let i = 0; i < QUEST_WEIGHT; i++){
+      pool.push(quest);
+    }
+  });
+
+  return pool;
+}
+
+function spin(){
+ if(spinning) return;
+ spinning=true;
+ state="ROLLED";
+ locked=false;            // ← HIER
+ lever.classList.remove("ready");
+ selected=null;
+ lockBtn.disabled=true;
+ completeBtn.disabled=true;
+
+ const pool=getPool();
+ let ticks=0;
+
+ const interval=setInterval(()=>{
+  reels.innerHTML="";
+  reelData=[];
+
+  for(let i=0;i<3;i++){
+const s = pool[rand(0, pool.length - 1)];
+
+// check of dit een quest is
+const questEntry = Object.entries(QUESTS)
+  .find(([id, q]) => q.name === s);
+
+let icon, gain = "";
+
+if (questEntry) {
+  const [id, q] = questEntry;
+  icon = QUEST_ICON;
+  reelData.push({
+    skill: s,
+    quest: true,
+    questId: id
+  });
+} else {
+ const lvl = +document.getElementById(s).value;
+ const g = lvl < 50 ? rand(5,10) : rand(3,5);
+ icon = `https://oldschool.runescape.wiki/images/${s}_icon.png`;
+ gain = `+${g}`;
+ reelData.push({ skill: s, gain: g });
+}
+
+reels.innerHTML += `
+ <div class="reel spin">
+  <img src="${icon}">
+  <div class="reel-name">${s}</div>
+  ${gain ? `<div class="reel-gain">${gain}</div>` : ""}
+ </div>`;
+  }
+
+  if(++ticks>25){
+   clearInterval(interval);
+document.querySelectorAll(".reel").forEach((r,i)=>{
+ r.classList.remove("spin");
+
+ r.onclick = () => {
+  if (locked) return;   // ← ALLEEN blokkeren NA LOCK
+
+  // reset alle reels
+  document.querySelectorAll(".reel").forEach(x=>{
+   x.classList.remove("selected");
+   x.classList.remove("dim");
+  });
+
+  // dim alles behalve deze
+  document.querySelectorAll(".reel").forEach(x=>x.classList.add("dim"));
+
+  r.classList.remove("dim");
+  r.classList.add("selected");
+
+  selected = i;
+  lockBtn.disabled = false;
+ };
+});
+   spinning=false;
+  }
+ },90);
+
+updateLeverState();
+}
+
+lever.onclick = () => {
+ if (spinning) return;
+
+ lever.classList.add("pull");
+ setTimeout(() => lever.classList.remove("pull"), 280);
+
+ // normale spin
+ if (state === "READY" || state === "COMPLETED") {
+  spin();
+  return;
+ }
+
+ // reroll met key
+if (state === "ROLLED" && keys > 0) {
+ keys--;
+ localStorage.setItem("gg_keys", keys);
+ keyCount.textContent = keys;
+ spin();
+ updateLeverState();
+}
+};
+
+lockBtn.onclick = () => {
+ const result = reelData[selected];
+
+ // === QUEST? → eerst popup ===
+ if (result.quest){
+  const q = QUESTS[result.questId];
+  showQuestLockPopup(q);
+  return; // stop hier, pas na PROCEED locken
+ }
+
+ // === GEEN QUEST → direct locken (oude gedrag) ===
+ locked = true;
+
+ completeBtn.disabled = false;
+ lockBtn.disabled = true;
+ lever.classList.add("disabled");
+
+ const reel = document.querySelectorAll(".reel")[selected];
+ reel.classList.add("locked");
+
+ const t = document.createElement("div");
+ t.className = "locked-text";
+ t.textContent = "LOCKED IN!";
+ reel.appendChild(t);
+
+ setTimeout(() => {
+  t.remove();
+  reel.classList.remove("locked");
+ }, 800);
+};
+function confirmQuestLock(){
+ locked = true;
+
+ completeBtn.disabled = false;
+ lockBtn.disabled = true;
+ lever.classList.add("disabled");
+
+ const reel = document.querySelectorAll(".reel")[selected];
+ reel.classList.add("locked");
+
+ const t = document.createElement("div");
+ t.className = "locked-text";
+ t.textContent = "LOCKED IN!";
+ reel.appendChild(t);
+
+ setTimeout(() => {
+  t.remove();
+  reel.classList.remove("locked");
+ }, 800);
+}
+completeBtn.onclick=()=>{
+ const result = reelData[selected];
+
+ // === QUEST COMPLETION ===
+ const questEntry = result.quest
+  ? [result.questId, QUESTS[result.questId]]
+  : null;
+
+if (questEntry){
+  const [id, q] = questEntry;
+
+  if (!completedQuests.includes(id)){
+    completedQuests.push(id);
+  }
+
+  saveCompletedQuests();
+
+  questPoints += q.qpReward || 0;
+  localStorage.setItem("gg_qp", questPoints);
+  qpCount.textContent = questPoints;
+
+  showQuestPopup(q.name);
+}
+ // === SKILL GAIN ===
+ else {
+  const {skill, gain} = result;
+  const input = document.getElementById(skill);
+  input.value = Math.min(99, +input.value + gain);
+  saveSkills();
+  updateTotalLevel();
+ }
+
+ maybeDropKey();
+
+ lockBtn.disabled=true;
+ completeBtn.disabled=true;
+ state="COMPLETED";
+ lever.classList.remove("disabled");
+ lever.classList.add("ready");
+};
+
+function showKeyPopup(){
+ const o=document.createElement("div");
+ o.className="key-popup";
+ o.innerHTML=`
+  <div class="key-popup-box">
+   <h2>YOU FOUND A KEY</h2>
+   <div class="big-key">🗝️</div>
+  </div>`;
+ o.onclick=()=>o.remove();
+ document.body.appendChild(o);
+}
+function showQuestPopup(name){
+ const o=document.createElement("div");
+ o.className="quest-popup";
+ o.innerHTML=`
+  <div class="quest-box">
+   <h1>QUEST COMPLETE!</h1>
+   <img src="${QUEST_ICON}">
+   <div class="quest-name">${name}</div>
+  </div>`;
+ o.onclick=()=>o.remove();
+ document.body.appendChild(o);
+}
+function showQuestLockPopup(quest){
+ const o = document.createElement("div");
+ o.className = "quest-lock-popup";
+
+ let recommendedHTML = "";
+
+ // recommended skills
+ if (quest.recommended?.skills){
+  for (const s in quest.recommended.skills){
+   recommendedHTML += `<div>${s}: ${quest.recommended.skills[s]}</div>`;
+  }
+ }
+
+ // recommended combat (LOS, geen skill)
+ if (quest.recommended?.combat){
+  recommendedHTML += `<div>Combat level: ${quest.recommended.combat}</div>`;
+ }
+
+ if (!recommendedHTML){
+  recommendedHTML = "<div>None</div>";
+ }
+
+ o.innerHTML = `
+  <div class="quest-lock-box">
+   <h2>LOCK THIS QUEST?</h2>
+   <div class="recommended">
+    <strong>Recommended</strong><br><br>
+    ${recommendedHTML}
+    <div class="quest-note" id="questNote"></div>
+   </div>
+   <div class="quest-lock-buttons">
+    <button id="questProceed">PROCEED</button>
+    <button id="questCancel">CANCEL</button>
+   </div>
+  </div>
+ `;
+
+ document.body.appendChild(o);
+// === QUEST NOTE ===
+if (quest.recommended?.note){
+  const noteEl = document.getElementById("questNote");
+  noteEl.textContent = quest.recommended.note;
+}
+ document.getElementById("questCancel").onclick = () => o.remove();
+
+ document.getElementById("questProceed").onclick = () => {
+  o.remove();
+  confirmQuestLock(); // deze maken we straks
+ };
+}
+function spawnConfetti(){
+ for(let i=0;i<30;i++){
+  const c=document.createElement("div");
+  c.className="confetti";
+  c.style.left="50%";
+  c.style.top="45%";
+  c.style.background=`hsl(${Math.random()*360},100%,60%)`;
+  c.style.setProperty("--dx",(Math.random()*600-300)+"px");
+  c.style.setProperty("--dy",(Math.random()*600-300)+"px");
+  document.body.appendChild(c);
+  setTimeout(()=>c.remove(),1400);
+ }
+}
+
+function maybeDropKey(){
+ // 🎉 ALTIJD CONFETTI BIJ COMPLETION
+ spawnConfetti();
+
+ // 🗝️ KANS OP KEY DROP BIJ ELKE COMPLETION
+ if(Math.random()<0.25){
+
+  setTimeout(()=>{
+   const k=document.createElement("div");
+   k.className="key-drop";
+   k.textContent="🗝️";
+   document.body.appendChild(k);
+   setTimeout(()=>k.remove(),1200);
+  },500);
+
+setTimeout(()=>{
+ keys++;
+ localStorage.setItem("gg_keys",keys);
+ keyCount.textContent=keys;
+ showKeyPopup();
+ updateLeverState();
+},1800);
+ }
+}
+
+resetBtn.onclick=()=>{
+ if(!confirm("RESET EVERYTHING?")) return;
+ localStorage.clear();
+ location.reload();
+};
+function updateQuestProgress(){
+  const el = document.getElementById("questProgress");
+  if (!el) return;
+
+  const completed = completedQuests.length;
+  const total = Object.keys(QUESTS).length;
+
+  el.textContent = `Completed: ${completed} / ${total}`;
+}
+// ===== QUEST TAB (OPEN / CLOSE) =====
+const questBtn = document.getElementById("questBtn");
+
+questBtn.onclick = () => {
+ // niet openen tijdens spin
+ if (spinning) return;
+
+ const overlay = document.createElement("div");
+ overlay.className = "quest-tab";
+
+overlay.innerHTML = `
+  <div class="quest-tab-box">
+   <h2>QUEST LOG</h2>
+
+   <!-- QUEST PROGRESS (komt later data in) -->
+   <div id="questProgress" style="
+     text-align:center;
+     font-size:11px;
+     opacity:0.8;
+     margin-top:6px;
+     margin-bottom:12px;
+   ">
+     Completed: 0 / 0
+   </div>
+
+   <div class="quest-list" id="questList"></div>
+  </div>
+ `;
+
+document.body.appendChild(overlay);
+
+// ⬇️ NU pas bestaat #questList
+renderQuestList(document.getElementById("questList"));
+updateQuestProgress();
+
+ // klik buiten box = sluiten
+ overlay.onclick = e => {
+  if (e.target === overlay) overlay.remove();
+ };
+
+ // ESC = sluiten
+ document.addEventListener("keydown", function escClose(e){
+  if (e.key === "Escape"){
+   overlay.remove();
+   document.removeEventListener("keydown", escClose);
+  }
+ });
+
+ document.body.appendChild(overlay);
+};
+
+const grid=document.getElementById("skills");
+
+function renderSkills(){
+  grid.innerHTML="";
+
+  const activeSkills = (mode === "f2p") ? f2pSkills : skills;
+
+  activeSkills.forEach(s=>{
+    const start = s === "Hitpoints" ? 10 : 1;
+
+    grid.innerHTML += `
+      <div class="skill">
+        <img src="https://oldschool.runescape.wiki/images/${s}_icon.png">
+        <input id="${s}" type="number" value="${start}" min="${start}" max="99">
+      </div>`;
+  });
+}
+function saveSkills(){
+ const data={};
+ skills.forEach(s=>data[s]=+document.getElementById(s).value);
+ localStorage.setItem("gg_skills",JSON.stringify(data));
+}
+
+function loadSkills(){
+ const saved=JSON.parse(localStorage.getItem("gg_skills")||"{}");
+ skills.forEach(s=>{
+  if(saved[s]!==undefined){
+   document.getElementById(s).value=saved[s];
+  }
+ });
+}
+
+function updateTotalLevel(){
+ let total=0;
+ skills.forEach(s=>total+=+document.getElementById(s).value);
+ document.getElementById("totalLevel").textContent="TOTAL LEVEL: "+total;
+}
+function renderQuestList(container){
+  container.innerHTML = "";
+
+  Object.entries(QUESTS).forEach(([id, q]) => {
+
+    const completed = completedQuests.includes(id);
+
+    const item = document.createElement("div");
+    item.className = "quest-item";
+    if (completed) item.classList.add("completed");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = completed;
+
+    checkbox.onchange = () => {
+      if (checkbox.checked){
+        if (!completedQuests.includes(id)){
+          completedQuests.push(id);
+        }
+      } else {
+        completedQuests = completedQuests.filter(qid => qid !== id);
+      }
+
+      // opslaan
+      saveCompletedQuests();
+
+      // QP herberekenen
+      questPoints = completedQuests.reduce((sum, qid) => {
+        return sum + (QUESTS[qid]?.qpReward || 0);
+      }, 0);
+
+      localStorage.setItem("gg_qp", questPoints);
+      qpCount.textContent = questPoints;
+
+      // opnieuw renderen voor styling
+      renderQuestList(container);
+      updateQuestProgress();
+    };
+
+    const name = document.createElement("span");
+    name.textContent = q.name;
+
+    item.appendChild(checkbox);
+    item.appendChild(name);
+    container.appendChild(item);
+  });
+}
+renderSkills();
+loadSkills();
+updateTotalLevel();
+</script>
+</body>
+</html>
